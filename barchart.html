@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Barchart</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <link type="text/css" rel="stylesheet" href="stylesheets/bootstrap.min.css"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="stylesheets/bootstrap-responsive.min.css" rel="stylesheet">
+        <link href='http://fonts.googleapis.com/css?family=Rosario:400,700' rel='stylesheet' type='text/css'>
+        <link type="text/css" rel="stylesheet" href="stylesheets/style.css"/>
+        <meta charset="utf-8">
+        <style> /* set the CSS */
+
+            .bar { fill: steelblue; }
+            
+            div.container {
+                width: 500px;
+                height: 300px;
+                margin: 5px auto;
+            }
+            
+        </style>
+    </head>
+    <body>
+      <div align="center">
+        <h1>Barchart</h1>
+        <hr>
+	
+        <!-- load the d3.js library -->    	
+        <script src="//d3js.org/d3.v4.min.js"></script>
+        <div class='container', id="visualization"></div>
+        
+        <script>
+
+            // set the dimensions and margins of the graph
+            var margin = {top: 20, right: 20, bottom: 20, left: 80};
+            var    width = d3.select("#visualization").node().getBoundingClientRect().width - margin.left - margin.right;
+            var    height = d3.select("#visualization").node().getBoundingClientRect().height - margin.top - margin.bottom;
+
+            // set the ranges
+            var x = d3.scaleBand()
+                      .range([0, width])
+                      .padding(0.1);
+                      
+            // append the svg object to the body of the page
+            // append a 'group' element to 'svg'
+            // moves the 'group' element to the top left margin
+            var svg = d3.select("#visualization").append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // get the data
+            d3.csv("data.csv", function(error, data) {
+                if (error) throw error;
+
+                // format the data and read the data bassed upon the column names
+                var column_names = Object.keys(d3.values(data)[0]);
+                
+                data.forEach(function(d) {
+                    d.yValue = +d[column_names[1]];
+                    d.xValue = d[column_names[0]];
+                });
+
+                // scale the range of the data in the domains
+                x.domain(data.map(function(d) { return d.xValue; }));
+
+
+                var gxAxis = svg.append("g")
+                                .attr("class", "xaxis")
+                                .call(d3.axisBottom(x));
+                   
+                gxAxis.selectAll("text")
+                      .style("text-anchor", "end")
+                      .attr("dx", "-.8em")
+                      .attr("dy", ".15em")
+                      .attr("transform", "rotate(-65)");
+                
+                var maxWidth = 0;
+                
+                gxAxis.selectAll("text").each(function () {
+                    var boxWidth = this.getBBox().width;
+                    if (boxWidth > maxWidth) maxWidth = boxWidth;
+                });
+                
+                height = height - maxWidth;
+
+                gxAxis.attr("transform", "translate(0," + height + ")");
+
+                var y = d3.scaleLinear().range([height, 0]);
+                y.domain([0, d3.max(data, function(d) { return d.yValue; })]);
+                
+
+                // text label for the x axis
+                svg.append("text")             
+                   .attr("transform", "translate(" + (width/2) + " ," + (height + maxWidth + margin.top + 20) + ")")
+                   .style("text-anchor", "middle")
+                   .text(column_names[0]);
+
+                   
+                // add the y Axis
+                svg.append("g")
+                   .call(d3.axisLeft(y));
+                   
+                // text label for the y axis
+                svg.append("text")
+                   .attr("transform", "rotate(-90)")
+                   .attr("y", 0 - margin.left)
+                   .attr("x",0 - (height / 2))
+                   .attr("dy", "1em")
+                   .style("text-anchor", "middle")
+                   .text(column_names[1]);      
+  
+                // append the rectangles for the bar chart
+                svg.selectAll(".bar")
+                   .data(data)
+                   .enter().append("rect")
+                   .attr("class", "bar")
+                   .attr("x", function(d) { return x(d.xValue); })
+                   .attr("width", x.bandwidth())
+                   .attr("y", function(d) { return y(d.yValue); })
+                   .attr("height", function(d) { return height - y(d.yValue); });
+
+            });
+
+        </script>
+      </div>
+    </body>
+</html>
